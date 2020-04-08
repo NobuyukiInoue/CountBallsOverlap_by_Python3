@@ -1,0 +1,12 @@
+# This is pattern file.
+
+# start_wait = 10      # second.
+max_width = 800
+max_height = 480
+max_balls = 300
+radius = 3
+movement = -5, 5, 1    # min, max, step
+# sleep_sec = 0.01
+bar = 200, 220, 6      # pos_x, bar_height, bar_width
+heal = 100
+Ratio_of_balls_stopped = 0.0    # Between 0.0 and 1.0
