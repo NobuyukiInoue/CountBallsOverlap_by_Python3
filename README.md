@@ -4,27 +4,31 @@ Count the number of times the balls overlap like a virus infection..
 
 This program is based on the following articles.
 
-Why outbreaks like coronavirus spread exponentially, and how to “flatten the curve”
+* Why outbreaks like coronavirus spread exponentially, and how to “flatten the curve”<br>
 [https://www.washingtonpost.com/graphics/2020/world/corona-simulator/](https://www.washingtonpost.com/graphics/2020/world/corona-simulator/)
+
+
+* CountBallsOverlap_by_JavaScript<br>
+[https://github.com/NobuyukiInoue/CountBallsOverlap_by_JavaScript](https://github.com/NobuyukiInoue/CountBallsOverlap_by_JavaScript)
 
 
 ## DEMO
 
 ```
-$ python CountBallsOverlap.py patterns/pattern_balls300_heal100_with_bar_height220.txt
+$ python CountBallsOverlap.py patterns.txt
 pygame 1.9.6
 Hello from the pygame community. https://www.pygame.org/contribute.html
 MAX_WIDTH = 800
 MAX_HEIGHT = 480
 MAX_BALLS = 300
-RADIUS = 3
+RADIUS = 4
 MOVEMENT = (-5, 5, 1)
 SLEEP_SEC = 0.000000
 CHART_HEIGHT = 300
 TURNS_REQUIRED_FOR_HEAL = 100
 RATIO_OF_BALLS_STOPPED = 0.0
 ENABLE_BAR = True
-BAR.POS_X = 200, BAR.HEIGHT = 220, BAR.WIDTH = 5
+BAR.POS_X = 200, BAR.HEIGHT = 200, BAR.WIDTH = 8
 
 turn:contact,infected,healed,remaining
 23:2,2,0,298
@@ -73,23 +77,25 @@ $ python3 -m pip install pygame --pre --user
 1. Prepare a pattern file.
 
 ```
-$ cat patterns/pattern_balls300_heal100_with_bar_height220.txt
+$ cat patterns.txt
 # This is pattern file.
 
-# start_wait = 10     # second.
+# start_wait = 10      # second.
 max_width = 800
 max_height = 480
 max_balls = 300
-radius = 2
+radius = 4
+movement = -5, 5, 1    # min, max, step
 # sleep_sec = 0.01
-bar = 200, 220, 5   # pos_x, bar_height, bar_width
+bar = 200, 200, 8      # pos_x, bar_height, bar_width
 heal = 100
+Ratio_of_balls_stopped = 0.0    # Between 0.0 and 1.0
 ```
 
 2. Exexute python script.
 
 ```
-$ python CountBallsOverlap.py patterns/pattern_balls300_heal100_with_bar_height220.txt
+$ python CountBallsOverlap.py patterns.txt
 ```
 
 

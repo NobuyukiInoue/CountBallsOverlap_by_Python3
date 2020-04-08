@@ -236,7 +236,7 @@ def main():
 
     screen_size = (PARAMS.MAX_WIDTH, PARAMS.MAX_HEIGHT + PARAMS.RADIUS + PARAMS.CHART_HEIGHT)
     screen = pygame.display.set_mode(screen_size)
-    pygame.display.set_caption(u"Simulation COVID-19")
+    pygame.display.set_caption(u"CountBallsOverlap")
 
     # record start time.
     time_start = time.time()
