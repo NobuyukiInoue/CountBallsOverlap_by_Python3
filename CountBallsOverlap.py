@@ -2,6 +2,7 @@
 
 """ Count contact between balls. """
 
+import math
 import os
 import pygame
 import pygame.locals
@@ -107,7 +108,7 @@ class ball:
         self.forecolor = color
 
     def check_contact(self, target_pos):
-        if abs(target_pos[0] - self.x) <= self.radius and abs(target_pos[1] - self.y) <= self.radius:
+        if math.sqrt((target_pos[0] - self.x)**2 + (target_pos[1] - self.y)**2) <= self.radius:
             return True
         return False
 
