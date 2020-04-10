@@ -27,6 +27,12 @@ class params:
         self.TURNS_REQUIRED_FOR_HEAL = 100  # -1 ... Does not heal.
         self.RATIO_OF_BALLS_STOPPED = 0.0
 
+class drawratio:
+    def __init__(self, PARAMS, infected_incremental):
+        self.INFECTED_INCREMENTAL = 3
+        self.WIDTH = 1
+        self.HEIGHT = PARAMS.CHART_HEIGHT / PARAMS.MAX_BALLS
+
 class bar:
     def __init__(self):
         self.POS_X = 100
@@ -51,7 +57,7 @@ class ball:
         self.x, self.y = pos_x, pos_y
         self.add_x, self.add_y = add_x, add_y
         self.max_x, self.max_y = max_x, max_y
-        self.contact = False
+        self.contacted = False
         self.turn_heal = -1
         self.turn_infection = -1
         self.healed = False
@@ -97,9 +103,9 @@ class ball:
             self.add_y = -abs(self.add_y)
         self.y += self.add_y
 
-    def set_contact(self, turn_infection, turn_heal, color):
+    def set_contacted(self, turn_infection, turn_heal, color):
         self.forecolor = color
-        self.contact = True
+        self.contacted = True
         self.turn_infection = turn_infection
         self.turn_heal = self.turn_infection + turn_heal
 
@@ -107,8 +113,8 @@ class ball:
         self.healed = True
         self.forecolor = color
 
-    def check_contact(self, target_pos):
-        if math.sqrt((target_pos[0] - self.x)**2 + (target_pos[1] - self.y)**2) <= self.radius:
+    def isOverlapTo(self, target_pos):
+        if math.sqrt((target_pos[0] - self.x)**2 + (target_pos[1] - self.y)**2) < 2*self.radius:
             return True
         return False
 
@@ -170,6 +176,16 @@ def load_patternfile(filename):
             except:
                 continue
     return PARAMS
+
+class R_Note:
+    def __init__(self, results_width):
+        self.results_WIDTH = results_width
+        self.term_turn = 0
+        self.term_incremental = 0
+        self.value = 0
+        self.value_max = 0
+        self.value_max_turn_begin = 0
+        self.value_max_turn_end = 0
 
 def init_ball_position(PARAMS):
     if PARAMS.ENABLE_BAR:
@@ -273,7 +289,7 @@ def main():
             balls.append(ball(x, y, add_x, add_y, PARAMS.MAX_WIDTH, PARAMS.MAX_HEIGHT, PARAMS.RADIUS, COLORS.BLUE))
 
     # Make the first ball red.
-    # balls[0].set_contact(COLORS.RED)
+    # balls[0].set_contacted(COLORS.RED)
 
     # Make the leftmost ball red.
     min_x, target_turn = sys.maxsize, 0
@@ -281,7 +297,7 @@ def main():
         if balls[i].x < min_x:
             min_x = balls[i].x
             target_turn = i
-    balls[target_turn].set_contact(0, PARAMS.TURNS_REQUIRED_FOR_HEAL, COLORS.RED)
+    balls[target_turn].set_contacted(0, PARAMS.TURNS_REQUIRED_FOR_HEAL, COLORS.RED)
     contacted_count = 1
 
     # font for contact count information.
@@ -290,7 +306,8 @@ def main():
     results = []
     turn = 0
     pre_result = (0, contacted_count, contacted_count, 0)
-    RATIO_INFECTED_INCREMENTAL = 3
+    DRAW_RATIO = drawratio(PARAMS, 3)
+    R0 = R_Note(5)
 
     while True:
         screen.fill(COLORS.WHITE)
@@ -306,30 +323,30 @@ def main():
         # heal check.
         if turn > 0:
             for i in range(PARAMS.MAX_BALLS):
-                if balls[i].contact and balls[i].turn_heal == turn:
+                if balls[i].contacted and balls[i].turn_heal == turn:
                     balls[i].set_heal(COLORS.GREEN)
 
         # contact check.
         infected_count, healed_count = 0, 0
         for i in range(PARAMS.MAX_BALLS):
-            if balls[i].contact and balls[i].healed == False:
+            if balls[i].contacted and balls[i].healed == False:
                 infected_count += 1
             if balls[i].healed:
                 healed_count += 1
             for j in range(i + 1, PARAMS.MAX_BALLS):
-                conditions_i = balls[i].contact and balls[i].healed == False
-                conditions_j = balls[j].contact and balls[j].healed == False
+                conditions_i = balls[i].contacted and balls[i].healed == False
+                conditions_j = balls[j].contacted and balls[j].healed == False
                 if conditions_i and conditions_j:
                     continue
                 if balls[i].healed or balls[j].healed:
                     continue
                 if conditions_i:
-                    if balls[i].check_contact(balls[j].get_position()):
-                        balls[j].set_contact(turn, PARAMS.TURNS_REQUIRED_FOR_HEAL, COLORS.RED)
+                    if balls[i].isOverlapTo(balls[j].get_position()):
+                        balls[j].set_contacted(turn, PARAMS.TURNS_REQUIRED_FOR_HEAL, COLORS.RED)
                         contacted_count += 1
                 elif conditions_j:
-                    if balls[j].check_contact(balls[i].get_position()):
-                        balls[i].set_contact(turn, PARAMS.TURNS_REQUIRED_FOR_HEAL, COLORS.RED)
+                    if balls[j].isOverlapTo(balls[i].get_position()):
+                        balls[i].set_contacted(turn, PARAMS.TURNS_REQUIRED_FOR_HEAL, COLORS.RED)
                         contacted_count += 1
 
         # draw bar.
@@ -352,40 +369,52 @@ def main():
             print("{0:d}:{1:d},{2:d},{3:d},{4:d}".format(turn, contacted_count, infected_count, healed_count, PARAMS.MAX_BALLS - contacted_count))
             pre_result = (turn, contacted_count, infected_count, healed_count)
 
+        results_length = len(results) 
+        if results_length > R0.results_WIDTH:
+            R0.term_incremental = results[results_length - 1][2] - results[results_length - 1 - R0.results_WIDTH][2]
+            if R0.term_incremental > 0:
+                R0.term_turn = results[results_length - 1][0] - results[results_length - 1 - R0.results_WIDTH][0]
+            #   R0 = (term_incremental/term_turn)*(1/PARAMS.TURNS_REQUIRED_FOR_HEAL);
+            #   R0.value = (term_incremental/term_turn)*PARAMS.TURNS_REQUIRED_FOR_HEAL;
+                R0.value = R0.term_incremental/R0.term_turn
+                if R0.value > R0.value_max:
+                    R0.value_max = R0.value
+                    R0.value_max_turn_begin = results[results_length - 1 - R0.results_WIDTH][0]
+                    R0.value_max_turn_end = results[results_length - 1][0]
+
         # draw contact count chart.
-        if turn > 0 and len(results) > 0:
+        if turn > 0 and results_length > 0:
             for i in range(0, 5):
                 if PARAMS.MAX_WIDTH * i >= turn:
-                    RATIO_DRAW_WIDTH = i
+                    DRAW_RATIO.WIDTH = i
                     break
             
-            RATIO_DRAW_HEIGHT = 1
             pre_x, pre_infected, pre_healed = 0, 0, 0
 
             for data in results:
-                x = data[0]//RATIO_DRAW_WIDTH
-                y_infected = PARAMS.MAX_HEIGHT + PARAMS.CHART_HEIGHT + PARAMS.RADIUS
-                y_healed = PARAMS.MAX_HEIGHT + 1
+                x = data[0]//DRAW_RATIO.WIDTH
+                y_infected = PARAMS.MAX_HEIGHT + PARAMS.RADIUS + PARAMS.CHART_HEIGHT
+                y_healed = PARAMS.MAX_HEIGHT + PARAMS.RADIUS
 
                 # draw infected line to lower.
-                pygame.draw.line(screen, COLORS.RED, (x, y_infected), (x, y_infected - data[2]*RATIO_DRAW_HEIGHT), 1)
+                pygame.draw.line(screen, COLORS.RED, (x, y_infected), (x, y_infected - data[2]*DRAW_RATIO.HEIGHT), 1)
 
                 incremental_x = x - pre_x
                 if incremental_x > 0:
                     for i in range(pre_x, x):
                         # draw previous infected line.
-                        pygame.draw.line(screen, COLORS.RED, (i, y_infected), (i, y_infected - pre_infected*RATIO_DRAW_HEIGHT), 1)
+                        pygame.draw.line(screen, COLORS.RED, (i, y_infected), (i, y_infected - pre_infected*DRAW_RATIO.HEIGHT), 1)
                 pre_infected = data[2]
 
                 # draw healed line to upper.
                 if data[3] > 0:
-                    pygame.draw.line(screen, COLORS.GREEN, (x, y_healed), (x, y_healed + data[3]*RATIO_DRAW_HEIGHT), 1)
+                    pygame.draw.line(screen, COLORS.GREEN, (x, y_healed), (x, y_healed + data[3]*DRAW_RATIO.HEIGHT), 1)
 
                     incremental_x = x - pre_x
                     if incremental_x > 0:
                         for i in range(pre_x, x):
                             # draw previous infected line.
-                            pygame.draw.line(screen, COLORS.GREEN, (i, y_healed), (i, y_healed + pre_healed*RATIO_DRAW_HEIGHT), 1)
+                            pygame.draw.line(screen, COLORS.GREEN, (i, y_healed), (i, y_healed + pre_healed*DRAW_RATIO.HEIGHT), 1)
                     pre_healed = data[3]
                 pre_x = x
     
@@ -405,19 +434,25 @@ def main():
         text = font.render("infected = " + str(infected_count) + "/" + str(PARAMS.MAX_BALLS) + "(RED)", True, COLORS.BLACK)
         screen.blit(text, [0, PARAMS.MAX_HEIGHT + 90])
 
+        text = font.render("Basic reproduction number(R0(max)) = " + str(int(R0.value_max*100)/100.0) + " (turn ... " + str(R0.value_max_turn_begin) + " to " + str(R0.value_max_turn_end) + ")", True, COLORS.BLACK)
+        screen.blit(text, [0, PARAMS.MAX_HEIGHT + 110])
+
         # All balls are infected.
         if contacted_count == PARAMS.MAX_BALLS:
-            text = font.render("infected incremental(BLUE)(ratio ... x" + str(RATIO_INFECTED_INCREMENTAL) + ")", True, COLORS.BLACK)
-            screen.blit(text, [0, PARAMS.MAX_HEIGHT + 110])
+            text = font.render("infected incremental(BLUE)(ratio ... x" + str(DRAW_RATIO.INFECTED_INCREMENTAL) + ")", True, COLORS.BLACK)
+            screen.blit(text, [0, PARAMS.MAX_HEIGHT + 130])
             text = font.render("end ... All balls are infected.", True, COLORS.BLACK)
-            screen.blit(text, [0, PARAMS.MAX_HEIGHT + 150])
+            screen.blit(text, [0, PARAMS.MAX_HEIGHT + 170])
 
         # The infected balls are gone.
         if infected_count == 0:
-            text = font.render("infected incremental(BLUE)(ratio ... x" + str(RATIO_INFECTED_INCREMENTAL) + ")", True, COLORS.BLACK)
-            screen.blit(text, [0, PARAMS.MAX_HEIGHT + 110])
+            text = font.render("infected incremental(BLUE)(ratio ... x" + str(DRAW_RATIO.INFECTED_INCREMENTAL) + ")", True, COLORS.BLACK)
+            screen.blit(text, [0, PARAMS.MAX_HEIGHT + 130])
             text = font.render("end ... The infected balls are gone.", True, COLORS.BLACK)
-            screen.blit(text, [0, PARAMS.MAX_HEIGHT + 150])
+            screen.blit(text, [0, PARAMS.MAX_HEIGHT + 170])
+
+        # draw scale line.
+        draw_scale_line(screen, PARAMS, COLORS)
 
         # screen update.
         pygame.display.update()
@@ -462,16 +497,19 @@ def main():
     # draw incremental line.
     pre_x, pre_data = 0, 0
     for data in results:
-        x = data[0]//RATIO_DRAW_WIDTH
+        x = data[0]//DRAW_RATIO.WIDTH
         y = PARAMS.MAX_HEIGHT + PARAMS.CHART_HEIGHT + PARAMS.RADIUS
         incremental_data = data[1] - pre_data
         incremental_x = x - pre_x
         if incremental_x > 0:
             # draw incremental line.
-            pygame.draw.line(screen, COLORS.BLUE, (x, y), (x, y - int((incremental_data/incremental_x)*RATIO_INFECTED_INCREMENTAL)) , 1)
+            pygame.draw.line(screen, COLORS.BLUE, (x, y), (x, y - int((incremental_data/incremental_x)*DRAW_RATIO.INFECTED_INCREMENTAL)) , 1)
 
         pre_x = x
         pre_data = data[1]
+
+    # draw scale line.
+    draw_scale_line(screen, PARAMS, COLORS)
 
     # screen update.
     pygame.display.update()
@@ -482,6 +520,13 @@ def main():
     while True:
         # pygame event check.
         screen_eventcheck()
+
+def draw_scale_line(screen, PARAMS, COLORS):
+    for x in range(100, PARAMS.MAX_WIDTH, 100):
+        pygame.draw.line(screen, (128, 128, 128), (x, PARAMS.MAX_HEIGHT + PARAMS.RADIUS), (x, PARAMS.MAX_HEIGHT + PARAMS.RADIUS + PARAMS.CHART_HEIGHT), 1)
+
+    for y in range(PARAMS.MAX_HEIGHT + PARAMS.RADIUS, PARAMS.MAX_HEIGHT + PARAMS.RADIUS + PARAMS.CHART_HEIGHT, 100):
+        pygame.draw.line(screen, (128, 128, 128), (0, y), (PARAMS.MAX_WIDTH, y), 1)
 
 if __name__ == "__main__":
     main()
