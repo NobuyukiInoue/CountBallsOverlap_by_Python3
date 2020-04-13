@@ -329,17 +329,21 @@ def main():
         # contact check.
         infected_count, healed_count = 0, 0
         for i in range(PARAMS.MAX_BALLS):
-            if balls[i].contacted and balls[i].healed == False:
+            conditions_i = balls[i].contacted and balls[i].healed == False
+
+            if conditions_i:
                 infected_count += 1
             if balls[i].healed:
                 healed_count += 1
+
             for j in range(i + 1, PARAMS.MAX_BALLS):
-                conditions_i = balls[i].contacted and balls[i].healed == False
                 conditions_j = balls[j].contacted and balls[j].healed == False
+
                 if conditions_i and conditions_j:
                     continue
                 if balls[i].healed or balls[j].healed:
                     continue
+
                 if conditions_i:
                     if balls[i].isOverlapTo(balls[j].get_position()):
                         balls[j].set_contacted(turn, PARAMS.TURNS_REQUIRED_FOR_HEAL, COLORS.RED)
