@@ -298,14 +298,13 @@ def main():
             min_x = balls[i].x
             target_turn = i
     balls[target_turn].set_contacted(0, PARAMS.TURNS_REQUIRED_FOR_HEAL, COLORS.RED)
-    contacted_count = 1
 
     # font for contact count information.
     font = pygame.font.Font(None, 24)
 
     results = []
     turn = 0
-    pre_result = (0, contacted_count, contacted_count, 0)
+    pre_result = (0, 1, 1, 0)
     DRAW_RATIO = drawratio(PARAMS, 3)
     R0 = R_Note(5)
 
@@ -327,10 +326,12 @@ def main():
                     balls[i].set_heal(COLORS.GREEN)
 
         # contact check.
-        infected_count, healed_count = 0, 0
+        contacted_count, infected_count, healed_count = 0, 0, 0
         for i in range(PARAMS.MAX_BALLS):
             conditions_i = balls[i].contacted and balls[i].healed == False
 
+            if balls[i].contacted:
+                contacted_count += 1
             if conditions_i:
                 infected_count += 1
             if balls[i].healed:
@@ -347,11 +348,9 @@ def main():
                 if conditions_i:
                     if balls[i].isOverlapTo(balls[j].get_position()):
                         balls[j].set_contacted(turn, PARAMS.TURNS_REQUIRED_FOR_HEAL, COLORS.RED)
-                        contacted_count += 1
                 elif conditions_j:
                     if balls[j].isOverlapTo(balls[i].get_position()):
                         balls[i].set_contacted(turn, PARAMS.TURNS_REQUIRED_FOR_HEAL, COLORS.RED)
-                        contacted_count += 1
 
         # draw bar.
         if PARAMS.ENABLE_BAR:
